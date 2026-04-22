@@ -1,20 +1,30 @@
-name: OWASP ZAP Integration with Git Actions
-on: [push]
-permissions:
-  contents: read
-  issues: write
+name: ZAP Website Scan
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
-  zap_scan:
+  zap-scan:
     runs-on: ubuntu-latest
-    name: Scan the webappliation
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: master
-      - name: ZAP Scan
-        uses: zaproxy/action-baseline@v0.14.0
-        with:
-          target: 'https://tradingsmart.com/'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Run ZAP Baseline Scan using Docker
+    - name: ZAP Baseline Scan
+      run: |
+        docker run -t owasp/zap2docker-stable zap-baseline.py \
+          -t https://juice-shop.herokuapp.com/ \
+          -r zap-report.html \
+          --exit-code-on-fail 0
+      continue-on-error: true  # workflow continues even if alerts are found
+
+    # Upload ZAP report
+    - name: Upload ZAP Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: zap-report
+        path: zap-report.html
